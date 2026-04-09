@@ -77,7 +77,7 @@ python3 analizador_gramatica.py
 
 ## Gramáticas analizadas
 
-### Ejercicio 1 — Diapositiva 34
+### Ejercicio 1 
 
 ```
 S → A uno B C  |  S dos
@@ -87,7 +87,7 @@ C → cinco D B  |  ε
 D → seis  |  ε
 ```
 
-### Ejercicio 2 — Diapositiva 35
+### Ejercicio 2 
 
 ```
 S → A B uno

@@ -1,49 +1,77 @@
-# Taller 2 — Análisis Sintáctico Descendente Predictivo
+# Analisis de Gramaticas: PRIMEROS, SIGUIENTES y PREDICCION
 
-**Lenguajes de Programación y Transducción**  
-Universidad Sergio Arboleda · 2026  
-Autor: Lina Castañeda
+## Descripcion
 
----
+Este proyecto implementa el calculo de los conjuntos de PRIMEROS, SIGUIENTES y PREDICCION para gramaticas libres de contexto, siguiendo los algoritmos vistos en clase de Procesadores de Lenguaje.
 
-## Descripción
-
-Este proyecto implementa en Python los tres algoritmos fundamentales del análisis sintáctico descendente predictivo (LL(1)), tal como se presentan en las diapositivas del curso:
-
-| Algoritmo | Función |
-|---|---|
-| **PRIMEROS (FIRST)** | Terminales que pueden aparecer al inicio de una cadena derivada de cada no-terminal |
-| **SIGUIENTES (FOLLOW)** | Terminales que pueden aparecer inmediatamente después de cada no-terminal en una derivación válida |
-| **PREDICCIÓN (PRED)** | Conjunto que determina unívocamente qué producción aplicar dado el terminal de lookahead |
-
-Adicionalmente detecta **recursión izquierda directa** y verifica si la gramática presenta **conflictos LL(1)**.
+El programa tambien determina si la gramatica presenta conflictos LL(1).
 
 ---
 
-## Estructura del repositorio
+## Funcionalidades
 
-```
-Taller2_AnálisisSintáctico/
-├── analizador_gramatica.py   # Implementación principal (3 algoritmos)
-└── README.md                 # Este archivo
-```
+El programa permite:
 
----
-
-## Requisitos
-
-- Python 3.8 o superior
-- Sin dependencias externas (solo biblioteca estándar)
+- Parsear una gramatica escrita en texto.
+- Calcular los conjuntos de:
+  - PRIMEROS
+  - SIGUIENTES
+  - PREDICCION
+- Mostrar los resultados en formato tipo informe.
+- Detectar si la gramatica tiene conflictos LL(1).
 
 ---
 
-## Uso
+## Conceptos implementados
+
+### PRIMEROS
+
+Determina los terminales que pueden aparecer al inicio de una derivacion de un simbolo.
+
+### SIGUIENTES
+
+Determina los terminales que pueden aparecer inmediatamente despues de un no terminal.
+
+### PREDICCION
+
+Se usa para analisis sintactico predictivo.
+
+Si epsilon pertenece a PRIMEROS(alpha):
+
+PRED(A -> alpha) = (PRIMEROS(alpha) - {epsilon}) union SIGUIENTES(A)
+
+Si epsilon no pertenece a PRIMEROS(alpha):
+
+PRED(A -> alpha) = PRIMEROS(alpha)
+
+---
+
+## Formato de la gramatica
+
+La gramatica debe escribirse de la siguiente forma:
+
+S -> A uno B C | S dos  
+A -> B C D | A tres | epsilon  
+B -> D cuatro C tres | epsilon  
+C -> cinco D B | epsilon  
+D -> seis | epsilon  
+
+Reglas:
+
+- Usar "->" para producciones
+- Usar "|" para separar alternativas
+- Separar simbolos con espacios
+- Usar "epsilon" o "ε" para representar epsilon
+
+---
+
+## Ejecucion
+
+Para ejecutar el programa:
 
 ```bash
 python3 analizador_gramatica.py
 ```
-
-El script procesa automáticamente las dos gramáticas del taller e imprime los resultados en consola.
 
 ---
 
@@ -117,61 +145,16 @@ D → seis  |  ε
 
 ---
 
-## Algoritmos implementados
+## Estructura del codigo
 
-### PRIMEROS — punto fijo
+El archivo principal contiene las siguientes funciones:
 
-```python
-def calcular_primeros(grammar):
-    first = {nt: set() for nt in grammar}
-    changed = True
-    while changed:
-        changed = False
-        for head, prods in grammar.items():
-            for prod in prods:
-                antes = len(first[head])
-                first[head] |= primeros_secuencia(prod, first, nts)
-                if len(first[head]) > antes:
-                    changed = True
-    return first
-```
-
-### SIGUIENTES — punto fijo
-
-```python
-def calcular_siguientes(grammar, first, start):
-    follow = {nt: set() for nt in grammar}
-    follow[start].add("$")
-    changed = True
-    while changed:
-        changed = False
-        for head, prods in grammar.items():
-            for prod in prods:
-                for i, sym in enumerate(prod):
-                    if sym not in nts: continue
-                    beta = prod[i+1:]
-                    first_beta = primeros_secuencia(beta, first, nts)
-                    antes = len(follow[sym])
-                    follow[sym] |= (first_beta - {"ε"})
-                    if not beta or "ε" in first_beta:
-                        follow[sym] |= follow[head]
-                    if len(follow[sym]) > antes:
-                        changed = True
-    return follow
-```
-
-### PREDICCIÓN — por producción
-
-```python
-def calcular_prediccion(grammar, first, follow):
-    for head, prods in grammar.items():
-        for prod in prods:
-            first_alpha = primeros_secuencia(prod, first, nts)
-            if "ε" in first_alpha:
-                pred = (first_alpha - {"ε"}) | follow[head]
-            else:
-                pred = set(first_alpha)
-```
+- analizar_gramatica: parsea la gramatica desde texto  
+- calcular_primeros: calcula los conjuntos PRIMEROS  
+- calcular_siguientes: calcula los conjuntos SIGUIENTES  
+- calcular_prediccion: calcula los conjuntos de PREDICCION  
+- detectar_conflictos_ll1: verifica si hay conflictos LL(1)  
+- funciones de impresion para mostrar resultados  
 
 ---
 
@@ -186,3 +169,4 @@ NoTerminal -> simbolo1 simbolo2 | alternativa1 alternativa2
 - Los **terminales** se escriben en minúscula (ej. `uno`, `dos`, `tres`).
 - Los **no-terminales** son los que aparecen como claves del diccionario.
 - La cadena vacía se indica con `ε`.
+---

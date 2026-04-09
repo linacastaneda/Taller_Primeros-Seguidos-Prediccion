@@ -1,102 +1,95 @@
-# ============================================================
-# CALCULO GENERAL DE PRIMEROS, SIGUIENTES Y PREDICCION
-# PARA GRAMATICAS LIBRES DE CONTEXTO
-#
-# Formato esperado de la gramática:
-#   S -> A uno B C | S dos
-#   A -> B C D | A tres | ε
-#   B -> D cuatro C tres | ε
-#   C -> cinco D B | ε
-#   D -> seis | ε
-#
-# Notas:
-# - No terminales: símbolos del lado izquierdo de alguna regla
-# - Terminales: símbolos que NO están en los lados izquierdos
-# - ε representa epsilon
-# - No se modifica la gramática, solo se calculan conjuntos
-# ============================================================
+
 
 EPSILON = "ε"
 ENDMARK = "$"
 
 
-# ------------------------------------------------------------
-# PARSEO DE LA GRAMATICA DESDE TEXTO
-# ------------------------------------------------------------
-def parse_grammar(grammar_text):
+# PARSEO DE LA GRAMÁTICA
+# Formato esperado:
+#   S -> A uno B C | S dos
+#   A -> B C D | A tres | ε
+def analizar_gramatica(grammar_text):
     """
-    Convierte una gramática en texto a un diccionario:
-    {
-        "S": [["A", "uno", "B", "C"], ["S", "dos"]],
-        ...
-    }
+    Parsea el texto de la gramática en un diccionario.
+
+    Args:
+        grammar_text (str): Texto de la gramática en formato específico.
+
+    Returns:
+        dict: Diccionario con no terminales como claves y listas de producciones como valores.
+
+    Raises:
+        ValueError: Si hay líneas inválidas o producciones vacías.
     """
     grammar = {}
 
     lines = grammar_text.strip().splitlines()
     for raw_line in lines:
         line = raw_line.strip()
-
         if not line:
             continue
 
         if "->" not in line:
-            raise ValueError(f"Línea inválida (falta '->'): {line}")
+            raise ValueError(f"Línea inválida: {line}")
 
         left, right = line.split("->", 1)
         left = left.strip()
         right = right.strip()
 
         alternatives = [alt.strip() for alt in right.split("|")]
+
         productions = []
-
         for alt in alternatives:
-            if alt == "":
-                raise ValueError(f"Producción vacía inválida en línea: {line}")
+            if not alt:
+                raise ValueError(f"Producción inválida en línea: {line}")
+            productions.append(alt.split())
 
-            symbols = alt.split()
-            productions.append(symbols)
-
-        if left not in grammar:
-            grammar[left] = []
-
-        grammar[left].extend(productions)
+        grammar.setdefault(left, []).extend(productions)
 
     return grammar
 
 
-# ------------------------------------------------------------
-# UTILIDADES
-# ------------------------------------------------------------
-def get_non_terminals(grammar):
+# UTILIDADES BÁSICAS
+def obtener_no_terminales(grammar):
+    """
+    Obtiene el conjunto de no terminales de la gramática.
+    """
     return set(grammar.keys())
 
 
-def get_terminals(grammar, non_terminals):
-    terminals = set()
-    for left, productions in grammar.items():
-        for prod in productions:
-            for sym in prod:
-                if sym not in non_terminals and sym != EPSILON:
-                    terminals.add(sym)
-    return terminals
-
-
-def is_non_terminal(symbol, non_terminals):
+def es_no_terminal(symbol, non_terminals):
+    """
+    Verifica si un símbolo es un no terminal.
+    """
     return symbol in non_terminals
 
 
-def is_terminal(symbol, non_terminals):
+def es_terminal(symbol, non_terminals):
+    """
+    Verifica si un símbolo es un terminal.
+    """
     return symbol not in non_terminals and symbol != EPSILON
 
 
-# ------------------------------------------------------------
-# PRIMEROS DE UNA SECUENCIA
-# FIRST(α)
-# ------------------------------------------------------------
-def first_of_sequence(sequence, first_sets, non_terminals):
+def produccion_a_cadena(left, prod):
     """
-    Calcula PRIMEROS de una secuencia α = X1 X2 ... Xn
+    Convierte una producción a string.
+    """
+    return f"{left} → {' '.join(prod)}"
+
+
+def formatear_conjunto(symbols):
+    """
+    Formatea un conjunto de símbolos como string.
+    """
+    ordered = sorted(symbols)
+    return "{ " + ", ".join(ordered) + " }"
+
+
+# PRIMEROS DE UNA SECUENCIA
+def primeros_de_secuencia(sequence, first_sets, non_terminals):
+    """
+    Calcula el conjunto FIRST de una secuencia de símbolos.
     """
     if not sequence:
         return {EPSILON}
@@ -112,19 +105,19 @@ def first_of_sequence(sequence, first_sets, non_terminals):
             result.add(EPSILON)
             return result
 
-        if is_terminal(symbol, non_terminals):
+        if es_terminal(symbol, non_terminals):
             result.add(symbol)
             all_nullable = False
             break
 
-        if is_non_terminal(symbol, non_terminals):
+        if es_no_terminal(symbol, non_terminals):
             result |= (first_sets[symbol] - {EPSILON})
 
             if EPSILON in first_sets[symbol]:
                 continue
-            else:
-                all_nullable = False
-                break
+
+            all_nullable = False
+            break
 
     if all_nullable:
         result.add(EPSILON)
@@ -132,11 +125,12 @@ def first_of_sequence(sequence, first_sets, non_terminals):
     return result
 
 
-# ------------------------------------------------------------
-# CALCULO DE PRIMEROS
-# ------------------------------------------------------------
-def compute_first_sets(grammar):
-    non_terminals = get_non_terminals(grammar)
+# CÁLCULO DE PRIMEROS
+def calcular_primeros(grammar):
+    """
+    Calcula los conjuntos FIRST para todos los no terminales.
+    """
+    non_terminals = obtener_no_terminales(grammar)
     first_sets = {nt: set() for nt in non_terminals}
 
     changed = True
@@ -146,21 +140,19 @@ def compute_first_sets(grammar):
         for left, productions in grammar.items():
             for prod in productions:
                 before = len(first_sets[left])
-
-                seq_first = first_of_sequence(prod, first_sets, non_terminals)
-                first_sets[left] |= seq_first
-
+                first_sets[left] |= primeros_de_secuencia(prod, first_sets, non_terminals)
                 if len(first_sets[left]) > before:
                     changed = True
 
     return first_sets
 
 
-# ------------------------------------------------------------
-# CALCULO DE SIGUIENTES
-# ------------------------------------------------------------
-def compute_follow_sets(grammar, first_sets, start_symbol):
-    non_terminals = get_non_terminals(grammar)
+# CÁLCULO DE SIGUIENTES
+def calcular_siguientes(grammar, first_sets, start_symbol):
+    """
+    Calcula los conjuntos FOLLOW para todos los no terminales.
+    """
+    non_terminals = obtener_no_terminales(grammar)
     follow_sets = {nt: set() for nt in non_terminals}
     follow_sets[start_symbol].add(ENDMARK)
 
@@ -171,18 +163,16 @@ def compute_follow_sets(grammar, first_sets, start_symbol):
         for left, productions in grammar.items():
             for prod in productions:
                 for i, symbol in enumerate(prod):
-                    if not is_non_terminal(symbol, non_terminals):
+                    if not es_no_terminal(symbol, non_terminals):
                         continue
 
                     beta = prod[i + 1:]
-                    first_beta = first_of_sequence(beta, first_sets, non_terminals)
+                    first_beta = primeros_de_secuencia(beta, first_sets, non_terminals)
 
                     before = len(follow_sets[symbol])
 
-                    # FIRST(beta) - {ε}
                     follow_sets[symbol] |= (first_beta - {EPSILON})
 
-                    # Si beta =>* ε o beta es vacía, agregar FOLLOW(left)
                     if not beta or EPSILON in first_beta:
                         follow_sets[symbol] |= follow_sets[left]
 
@@ -192,145 +182,153 @@ def compute_follow_sets(grammar, first_sets, start_symbol):
     return follow_sets
 
 
-# ------------------------------------------------------------
-# CALCULO DE PREDICCION
-# ------------------------------------------------------------
-def compute_prediction_sets(grammar, first_sets, follow_sets):
-    non_terminals = get_non_terminals(grammar)
+# CÁLCULO DE PREDICCIÓN
+def calcular_prediccion(grammar, first_sets, follow_sets):
+    """
+    Calcula los conjuntos de predicción para cada producción.
+    """
+    non_terminals = obtener_no_terminales(grammar)
     prediction_sets = []
 
     for left, productions in grammar.items():
         for idx, prod in enumerate(productions, start=1):
-            first_alpha = first_of_sequence(prod, first_sets, non_terminals)
+            first_alpha = primeros_de_secuencia(prod, first_sets, non_terminals)
 
             if EPSILON in first_alpha:
-                pred = (first_alpha - {EPSILON}) | follow_sets[left]
+                prediction = (first_alpha - {EPSILON}) | follow_sets[left]
+                uses_follow = True
             else:
-                pred = set(first_alpha)
+                prediction = set(first_alpha)
+                uses_follow = False
 
             prediction_sets.append({
                 "left": left,
                 "index": idx,
                 "production": prod,
-                "prediction": pred
+                "first_alpha": first_alpha,
+                "prediction": prediction,
+                "uses_follow": uses_follow
             })
 
     return prediction_sets
 
 
-# ------------------------------------------------------------
-# OPCIONAL: DETECTAR CONFLICTOS LL(1)
-# ------------------------------------------------------------
-def detect_ll1_conflicts(grammar, prediction_sets):
+# DETECCIÓN DE RECURSIÓN IZQUIERDA DIRECTA
+def detectar_recursion_izquierda_directa(grammar):
     """
-    Revisa si para un mismo no terminal hay intersección
-    entre conjuntos de predicción de distintas reglas.
+    Detecta recursión por la izquierda directa en la gramática.
     """
+    recursions = []
+
+    for left, productions in grammar.items():
+        for prod in productions:
+            if prod and prod[0] == left:
+                recursions.append({
+                    "non_terminal": left,
+                    "production": prod
+                })
+
+    return recursions
+
+
+def detectar_conflictos_ll1(prediction_sets):
     grouped = {}
 
     for item in prediction_sets:
-        left = item["left"]
-        grouped.setdefault(left, []).append(item)
-
-    conflicts = []
+        grouped.setdefault(item["left"], []).append(item)
 
     for left, rules in grouped.items():
         for i in range(len(rules)):
             for j in range(i + 1, len(rules)):
-                inter = rules[i]["prediction"] & rules[j]["prediction"]
-                if inter:
-                    conflicts.append({
-                        "non_terminal": left,
-                        "rule1": rules[i],
-                        "rule2": rules[j],
-                        "intersection": inter
-                    })
+                if rules[i]["prediction"] & rules[j]["prediction"]:
+                    return True  # apenas detecta uno, ya hay conflicto
 
-    return conflicts
+    return False
 
 
-# ------------------------------------------------------------
-# FORMATO DE IMPRESION
-# ------------------------------------------------------------
-def sort_symbols(symbols):
-    preferred = ["uno", "dos", "tres", "cuatro", "cinco", "seis", ENDMARK, EPSILON]
-    ordered = [s for s in preferred if s in symbols]
-    remaining = sorted(s for s in symbols if s not in preferred)
-    return remaining + ordered
-
-
-def format_set(symbols):
-    return "{ " + ", ".join(sort_symbols(symbols)) + " }"
-
-
-def prod_to_string(left, production):
-    return f"{left} -> {' '.join(production)}"
-
-
-def print_results(grammar, first_sets, follow_sets, prediction_sets):
-    print("=" * 70)
-    print("GRAMATICA")
-    print("=" * 70)
+# IMPRESIÓN TIPO INFORME
+def imprimir_gramatica(grammar):
+    """
+    Imprime la gramática en formato legible.
+    """
+    print("GRAMÁTICA")
     for left, productions in grammar.items():
-        for prod in productions:
-            print(prod_to_string(left, prod))
+        right_side = " | ".join(" ".join(prod) for prod in productions)
+        print(f"{left} → {right_side}")
+    print()
 
-    print("\n" + "=" * 70)
-    print("PRIMEROS")
-    print("=" * 70)
-    for nt in sorted(grammar.keys()):
-        print(f"PRIMEROS({nt}) = {format_set(first_sets[nt])}")
 
-    print("\n" + "=" * 70)
-    print("SIGUIENTES")
-    print("=" * 70)
-    for nt in sorted(grammar.keys()):
-        print(f"SIGUIENTES({nt}) = {format_set(follow_sets[nt])}")
+def imprimir_primeros(first_sets):
+    """
+    Imprime los conjuntos FIRST.
+    """
+    print("CONJUNTOS DE PRIMEROS")
+    for nt in sorted(first_sets.keys()):
+        print(f"PRIMEROS({nt}) = {formatear_conjunto(first_sets[nt])}")
+    print()
 
-    print("\n" + "=" * 70)
-    print("PREDICCION")
-    print("=" * 70)
+
+def imprimir_siguientes(follow_sets):
+    """
+    Imprime los conjuntos FOLLOW.
+    """
+    print("CONJUNTOS DE SIGUIENTES")
+    for nt in sorted(follow_sets.keys()):
+        print(f"SIGUIENTES({nt}) = {formatear_conjunto(follow_sets[nt])}")
+    print()
+
+
+def imprimir_prediccion(prediction_sets):
+    """
+    Imprime los conjuntos de predicción.
+    """
+    print("CONJUNTOS DE PREDICCIÓN")
+    current_left = None
+
     for item in prediction_sets:
-        print(
-            f"PRED({prod_to_string(item['left'], item['production'])}) = "
-            f"{format_set(item['prediction'])}"
-        )
+        left = item["left"]
+        if left != current_left:
+            print(f"{left}:")
+            current_left = left
+
+        prod_str = " ".join(item["production"])
+        print(f"  {left} → {prod_str}")
+        print(f"     PRED = {formatear_conjunto(item['prediction'])}")
+
+    print()
 
 
-# ------------------------------------------------------------
-# FUNCION PRINCIPAL GENERAL
-# ------------------------------------------------------------
-def analyze_grammar(grammar_text, start_symbol):
-    grammar = parse_grammar(grammar_text)
-    first_sets = compute_first_sets(grammar)
-    follow_sets = compute_follow_sets(grammar, first_sets, start_symbol)
-    prediction_sets = compute_prediction_sets(grammar, first_sets, follow_sets)
+def imprimir_analisis_conflictos(conflicts):
+    print("ANÁLISIS DE CONFLICTOS")
 
-    print_results(grammar, first_sets, follow_sets, prediction_sets)
-
-    conflicts = detect_ll1_conflicts(grammar, prediction_sets)
-
-    print("\n" + "=" * 70)
-    print("REVISION DE CONFLICTOS DE PREDICCION")
-    print("=" * 70)
-    if not conflicts:
-        print("No se detectaron conflictos entre conjuntos de predicción.")
+    if conflicts:
+        print("La gramática presenta conflictos LL(1).")
     else:
-        print("Se detectaron conflictos:")
-        for c in conflicts:
-            r1 = prod_to_string(c["rule1"]["left"], c["rule1"]["production"])
-            r2 = prod_to_string(c["rule2"]["left"], c["rule2"]["production"])
-            print(f"\nNo terminal: {c['non_terminal']}")
-            print(f"  Regla 1: {r1}")
-            print(f"  Regla 2: {r2}")
-            print(f"  Intersección: {format_set(c['intersection'])}")
+        print("No se detectaron conflictos LL(1).")
+
+    print()
 
 
-# ------------------------------------------------------------
-# EJEMPLO DE USO: PRIMER EJERCICIO, PRIMERA GRAMATICA
-# ------------------------------------------------------------
+def procesar_gramatica(grammar_text, start_symbol):
+
+    grammar = analizar_gramatica(grammar_text)
+
+    first_sets = calcular_primeros(grammar)
+    follow_sets = calcular_siguientes(grammar, first_sets, start_symbol)
+    prediction_sets = calcular_prediccion(grammar, first_sets, follow_sets)
+
+    conflicts = detectar_conflictos_ll1(prediction_sets)
+
+    imprimir_gramatica(grammar)
+    imprimir_primeros(first_sets)
+    imprimir_siguientes(follow_sets)
+    imprimir_prediccion(prediction_sets)
+    imprimir_analisis_conflictos(conflicts)
+
+
+# EJEMPLO DE USO
 if __name__ == "__main__":
-    grammar_text = """
+    grammar1 = """
     S -> A uno B C | S dos
     A -> B C D | A tres | ε
     B -> D cuatro C tres | ε
@@ -338,4 +336,16 @@ if __name__ == "__main__":
     D -> seis | ε
     """
 
-    analyze_grammar(grammar_text, start_symbol="S")
+    grammar2 = """
+    S -> A B uno
+    A -> dos B | ε
+    B -> C D | tres | ε
+    C -> cuatro A B | cinco
+    D -> seis | ε
+    """
+
+    print("\n========== EJERCICIO 1 ==========\n")
+    procesar_gramatica(grammar1, start_symbol="S")
+
+    print("\n========== EJERCICIO 2 ==========\n")
+    procesar_gramatica(grammar2, start_symbol="S")

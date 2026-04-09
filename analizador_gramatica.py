@@ -213,39 +213,6 @@ def calcular_prediccion(grammar, first_sets, follow_sets):
     return prediction_sets
 
 
-# DETECCIÓN DE RECURSIÓN IZQUIERDA DIRECTA
-def detectar_recursion_izquierda_directa(grammar):
-    """
-    Detecta recursión por la izquierda directa en la gramática.
-    """
-    recursions = []
-
-    for left, productions in grammar.items():
-        for prod in productions:
-            if prod and prod[0] == left:
-                recursions.append({
-                    "non_terminal": left,
-                    "production": prod
-                })
-
-    return recursions
-
-
-def detectar_conflictos_ll1(prediction_sets):
-    grouped = {}
-
-    for item in prediction_sets:
-        grouped.setdefault(item["left"], []).append(item)
-
-    for left, rules in grouped.items():
-        for i in range(len(rules)):
-            for j in range(i + 1, len(rules)):
-                if rules[i]["prediction"] & rules[j]["prediction"]:
-                    return True  # apenas detecta uno, ya hay conflicto
-
-    return False
-
-
 # IMPRESIÓN TIPO INFORME
 def imprimir_gramatica(grammar):
     """
@@ -298,17 +265,6 @@ def imprimir_prediccion(prediction_sets):
     print()
 
 
-def imprimir_analisis_conflictos(conflicts):
-    print("ANÁLISIS DE CONFLICTOS")
-
-    if conflicts:
-        print("La gramática presenta conflictos LL(1).")
-    else:
-        print("No se detectaron conflictos LL(1).")
-
-    print()
-
-
 def procesar_gramatica(grammar_text, start_symbol):
 
     grammar = analizar_gramatica(grammar_text)
@@ -317,13 +273,10 @@ def procesar_gramatica(grammar_text, start_symbol):
     follow_sets = calcular_siguientes(grammar, first_sets, start_symbol)
     prediction_sets = calcular_prediccion(grammar, first_sets, follow_sets)
 
-    conflicts = detectar_conflictos_ll1(prediction_sets)
-
     imprimir_gramatica(grammar)
     imprimir_primeros(first_sets)
     imprimir_siguientes(follow_sets)
     imprimir_prediccion(prediction_sets)
-    imprimir_analisis_conflictos(conflicts)
 
 
 # EJEMPLO DE USO

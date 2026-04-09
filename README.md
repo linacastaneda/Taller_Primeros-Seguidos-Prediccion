@@ -4,8 +4,6 @@
 
 Este proyecto implementa el calculo de los conjuntos de PRIMEROS, SIGUIENTES y PREDICCION para gramaticas libres de contexto.
 
-El programa tambien determina si la gramatica presenta conflictos LL(1) e igual permite cambiar la gramatica si se desea.
-
 ---
 
 ## Funcionalidades
@@ -18,7 +16,6 @@ El programa permite:
   - SIGUIENTES
   - PREDICCION
 - Mostrar los resultados en formato tipo informe.
-- Detectar si la gramatica tiene conflictos LL(1).
 
 ---
 
@@ -119,9 +116,6 @@ D → seis  |  ε
 | D | { $, cuatro, dos, seis, tres, uno } |
 | S | { $, dos } |
 
-- **Recursión izquierda directa detectada:** `S → S dos` y `A → A tres`
-- **Conflictos LL(1):** Sí (causados por la recursión izquierda)
-
 ### Ejercicio 2
 
 | No-terminal | PRIMEROS |
@@ -140,8 +134,6 @@ D → seis  |  ε
 | D | { cinco, cuatro, seis, tres, uno } |
 | S | { $ } |
 
-- **Recursión izquierda directa:** No se detectó
-- **Conflictos LL(1):** Sí 
 
 ---
 
@@ -153,18 +145,12 @@ El archivo principal contiene las siguientes funciones:
 - calcular_primeros: calcula los conjuntos PRIMEROS  
 - calcular_siguientes: calcula los conjuntos SIGUIENTES  
 - calcular_prediccion: calcula los conjuntos de PREDICCION  
-- detectar_conflictos_ll1: verifica si hay conflictos LL(1)  
 - funciones de impresion para mostrar resultados  
 
 ---
 
 ## Formato de gramática (entrada)
 
-Las gramáticas se definen como texto con el formato:
-
-```
-NoTerminal -> simbolo1 simbolo2 | alternativa1 alternativa2
-```
 
 - Los **terminales** se escriben en minúscula (ej. `uno`, `dos`, `tres`).
 - Los **no-terminales** son los que aparecen como claves del diccionario.

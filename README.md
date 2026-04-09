@@ -2,9 +2,9 @@
 
 ## Descripcion
 
-Este proyecto implementa el calculo de los conjuntos de PRIMEROS, SIGUIENTES y PREDICCION para gramaticas libres de contexto, siguiendo los algoritmos vistos en clase de Procesadores de Lenguaje.
+Este proyecto implementa el calculo de los conjuntos de PRIMEROS, SIGUIENTES y PREDICCION para gramaticas libres de contexto.
 
-El programa tambien determina si la gramatica presenta conflictos LL(1).
+El programa tambien determina si la gramatica presenta conflictos LL(1) e igual permite cambiar la gramatica si se desea.
 
 ---
 

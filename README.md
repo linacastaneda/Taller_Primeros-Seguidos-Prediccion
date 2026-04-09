@@ -141,7 +141,7 @@ D → seis  |  ε
 | S | { $ } |
 
 - **Recursión izquierda directa:** No se detectó
-- **Conflictos LL(1):** Sí (conjuntos de PRED de las producciones de `B` se solapan)
+- **Conflictos LL(1):** Sí 
 
 ---
 
